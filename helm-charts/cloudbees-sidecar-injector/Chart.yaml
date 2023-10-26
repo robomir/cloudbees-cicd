@@ -1,0 +1,9 @@
+apiVersion: v1
+appVersion: 2.3.2
+description: Helm chart for sidecar injector webhook deployment
+keywords:
+- cloudbees
+- sidecar-injector
+kubeVersion: '>= 1.21.0-0'
+name: cloudbees-sidecar-injector
+version: 2.3.2

@@ -1,0 +1,301 @@
+credentials:
+  system:
+    domainCredentials:
+    - credentials:
+      - usernamePassword:
+          id: "github-token"
+          description: "github-token"
+          scope: SYSTEM
+          username: "fa-spectre"
+          password: "${readFile:/run/secrets/github-token}"
+      - string:
+          id: "cloudbees-token"
+          description: "cloudbees-token"
+          scope: SYSTEM
+          secret: "${readFile:/run/secrets/cloudbees-token}"
+      - basicSSHUserPrivateKey:
+          description: "git credentials"
+          id: "5d03110a-c16c-4a45-94db-27c32bc483b2"
+          privateKeySource:
+            directEntry:
+              privateKey: "${readFile:/run/secrets/git-ssh-key/id_rsa}"
+          scope: SYSTEM
+          username: "git"
+jenkins:
+  agentProtocols:
+  - "Diagnostic-Ping"
+  - "JNLP4-connect"
+  - "OperationsCenter2"
+  - "Ping"
+  authorizationStrategy: "cloudBeesRoleBasedAccessControl"
+  crumbIssuer:
+    standard:
+      excludeClientIPFromCrumb: true
+  disableRememberMe: false
+  labelAtoms:
+  - name: "built-in"
+  markupFormatter:
+    rawHtml:
+      disableSyntaxHighlighting: false
+  mode: NORMAL
+  myViewsTabBar: "standard"
+  noUsageStatistics: true
+  numExecutors: 2
+  primaryView:
+    masters:
+      columns:
+      - "status"
+      - "weather"
+      - "jobName"
+      - "manageMaster"
+      - "masterConfigurationStaleViewColumn"
+      - "totalJobsViewColumn"
+      - "queueSizeViewColumn"
+      - "jenkinsVersionViewColumn"
+      - "listSelectionColumn"
+      jobFilters:
+      - "connectedMasterViewFilter"
+      name: "Controllers"
+      recurse: true
+  projectNamingStrategy: "standard"
+  quietPeriod: 5
+  remotingSecurity:
+    enabled: true
+  scmCheckoutRetryCount: 0
+  securityRealm:
+    saml:
+      advancedConfiguration:
+        forceAuthn: false
+        spEntityId: "${saml_sp_entity_id}"
+      binding: "urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+      displayNameAttributeName: "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"
+      groupsAttributeName: "okta-group"
+      idpMetadataConfiguration:
+        period: 0
+        url: "${saml_idp_metadata_url}"
+        xml: |-
+          ${saml_idp_metadata}
+      logoutUrl: "${logout_url}"
+      maximumAuthenticationLifetime: 86400
+      usernameCaseConversion: "none"
+  slaveAgentPort: 50000
+  updateCenter:
+    sites:
+    - id: "core-oc-offline"
+      url: "file:/tmp/jenkins/war/WEB-INF/plugins/update-center.json"
+    - id: "cap-core-oc"
+      url: "https://jenkins-updates.cloudbees.com/update-center/envelope-core-oc/update-center.json"
+  views:
+  - masters:
+      columns:
+      - "status"
+      - "weather"
+      - "jobName"
+      - "manageMaster"
+      - "masterConfigurationStaleViewColumn"
+      - "totalJobsViewColumn"
+      - "queueSizeViewColumn"
+      - "jenkinsVersionViewColumn"
+      - "listSelectionColumn"
+      jobFilters:
+      - "connectedMasterViewFilter"
+      name: "Controllers"
+      recurse: true
+  - all:
+      name: "all"
+  viewsTabBar: "standard"
+beekeeper:
+  enabled: true
+  securityWarnings:
+    enabledForCore: true
+    enabledForPlugins: true
+  upgrades:
+    autoDowngradePlugins: false
+    autoUpgradePlugins: false
+notificationConfiguration:
+  enabled: true
+  router: "operationsCenter"
+cloudBeesCasCServer:
+  visibility: false
+license:
+  certificate: |
+    ${license_cert}
+  key: |
+    ${license_key}
+masterprovisioning:
+  dockerImageDefinitionConfiguration:
+    images:
+      - imageTag: "cloudbees/cloudbees-core-mm:2.375.4.2"
+        name: "CloudBees CI - Managed Controller - 2.375.4.2"
+      - imageTag: "cloudbees/cloudbees-core-mm:2.375.3.5"
+        name: "CloudBees CI - Managed Controller - 2.375.3.5"
+      - imageTag: "cloudbees/cloudbees-core-mm:2.361.4.1"
+        name: "CloudBees CI - Managed Controller - 2.361.4.1"
+      - imageTag: "cloudbees/cloudbees-core-mm:2.361.2.1"
+        name: "CloudBees CI - Managed Controller - 2.361.2.1"
+  kubernetes:
+    clusterEndpoints:
+    - id: "default"
+      ingressClass: "${ingress_class:-alb}"
+      jenkinsUrl: "${jenkins_url:-http://cjoc.${KUBERNETES_NAMESPACE}.svc.cluster.local/}"
+      name: "kubernetes"
+    - credentialsId: "cd/cloudbees/oc/${CI_ENVIRONMENT}/eks-${CI_ENVIRONMENT}-credentials"
+      id: "6a472829-ce2e-4f59-a552-d8043d54fc06"
+      name: "${CI_ENVIRONMENT}"
+      ingressAnnotations: |-
+        alb.ingress.kubernetes.io/group.name: lookout-cloudbees-${CI_ENVIRONMENT}-controllers
+        alb.ingress.kubernetes.io/actions.ssl-redirect: '{"Type": "redirect", "RedirectConfig": { "Protocol": "HTTPS", "Port": "443", "StatusCode": "HTTP_301"}}'
+        alb.ingress.kubernetes.io/certificate-arn: ${LB_CD_CERTIFICATE_ARN}
+        nginx.ingress.kubernetes.io/app-root: "/teams-check/"
+        alb.ingress.kubernetes.io/healthcheck-path: "/login"
+        alb.ingress.kubernetes.io/target-type: "ip"
+        alb.ingress.kubernetes.io/listen-ports: "[{\"HTTP\":80}, {\"HTTPS\":443}]"
+      ingressClass: "alb"
+      jenkinsUrl: "https://cjoc.cloudbees.${CI_ENVIRONMENT}.flexilis.com/"
+      namespace: "cloudbees-${CI_ENVIRONMENT}-controllers"
+      webSocket: true
+    cpus: "1.0"
+    disk: 200
+    fsGroup: "1000"
+    globalJavaOptions: "-Dorg.csanchez.jenkins.plugins.kubernetes.pipeline.PodTemplateStepExecution.defaultImage=cloudbees/cloudbees-core-agent:2.375.4.2\
+      \ -Dcom.cloudbees.jenkins.plugins.kube.ServiceAccountFilter.defaultServiceAccount=jenkins-agents\
+      \ -Dcom.cloudbees.networking.useSubdomain=${use_subdomain:-true} -Dcom.cloudbees.networking.protocol=\"\
+      https\" -Dcom.cloudbees.networking.hostname=\"${domain_name}\" -Dcom.cloudbees.networking.port=443\
+      \ -Dcom.cloudbees.networking.operationsCenterName=\"cjoc\""
+    javaOptions: "-XshowSettings:vm -XX:+AlwaysPreTouch -XX:+UseG1GC -XX:+DisableExplicitGC\
+      \ -XX:+ParallelRefProcEnabled -XX:+UseStringDeduplication -Dhudson.slaves.NodeProvisioner.initialDelay=0"
+    livenessInitialDelaySeconds: 300
+    livenessPeriodSeconds: 10
+    livenessTimeoutSeconds: 10
+    memory: 4096
+    readinessFailureThreshold: 100
+    readinessInitialDelaySeconds: 30
+    readinessTimeoutSeconds: 5
+    storageClassName: "ebs-sc"
+    terminationGracePeriodSeconds: 1200
+support:
+  automatedBundleConfiguration:
+    componentIds:
+    - "CloudBeesAssuranceSupport"
+    - "AgentsConfigFile"
+    - "ConfigFileComponent"
+    - "OtherConfigFilesComponent"
+    - "AboutBrowser"
+    - "AboutJenkins"
+    - "AboutUser"
+    - "AdministrativeMonitors"
+    - "AgentProtocols"
+    - "BuildQueue"
+    - "CustomLogs"
+    - "DumpExportTable"
+    - "EnvironmentVariables"
+    - "FileDescriptorLimit"
+    - "GCLogs"
+    - "HeapUsageHistogram"
+    - "ItemsContent"
+    - "AgentsJVMProcessSystemMetricsContents"
+    - "MasterJVMProcessSystemMetricsContents"
+    - "JenkinsLogs"
+    - "LoadStats"
+    - "LoggerManager"
+    - "Metrics"
+    - "NetworkInterfaces"
+    - "NodeMonitors"
+    - "OtherLogs"
+    - "ReverseProxy"
+    - "RootCAs"
+    - "RunningBuilds"
+    - "SlaveCommandStatistics"
+    - "SlaveLaunchLogs"
+    - "SlaveLogs"
+    - "AgentsSystemConfiguration"
+    - "MasterSystemConfiguration"
+    - "SystemProperties"
+    - "TaskLogs"
+    - "ThreadDumps"
+    - "UpdateCenter"
+    - "UserCount"
+    - "ComponentImpl"
+    - "SlowRequestComponent"
+    - "HighLoadComponent"
+    - "DeadlockRequestComponent"
+    - "KubernetesMasterLogs"
+    - "KubernetesMasterManifests"
+    - "ConnectedMasterSupportComponent"
+    enabled: true
+    period: 1
+globalCredentialsConfiguration:
+  configuration:
+    providerFilter: "none"
+    typeFilter: "none"
+security:
+  anonymizeSupportBundle:
+    enabled: true
+  apiToken:
+    creationOfLegacyTokenEnabled: false
+    tokenGenerationOnCreationEnabled: false
+    usageStatisticsEnabled: false
+  sSHD:
+    port: -1
+  securitySettingsEnforcement:
+    global:
+      realmOnly:
+        canCustomMapping: false
+        canOverride: false
+        defaultMappingFactory: "restrictedEquivalentRAMF"
+  gitHostKeyVerificationConfiguration:
+    sshHostKeyVerificationStrategy: "noHostKeyVerificationStrategy"
+unclassified:
+  buildDiscarders:
+    configuredBuildDiscarders:
+    - "jobBuildDiscarder"
+  bundleStorageService:
+    activated: true
+    activeBundle:
+      name: "cloudbees-controller-casc"
+      retriever:
+        SCM:
+          scmSource:
+            git:
+              credentialsId: "5d03110a-c16c-4a45-94db-27c32bc483b2"
+              id: "dcf7b584-70a9-41f2-9237-789f4be8bcaf"
+              remote: "git@github.com:lookout-life-org/cd-cloudbees-controller-casc.git"
+              traits:
+              - "gitBranchDiscovery"
+              - headRegexFilter:
+                  regex: "${CI_ENVIRONMENT}"
+    pollingPeriod: 120
+    purgeOnDeactivation: true
+  cascAutoControllerProvisioning:
+    duration: 60
+    fireAndForget: true
+    initialDelay: 15
+    provisionControllerOnCreation: false
+    timeout: 600
+  experimentalPlugins:
+    enabled: false
+  fingerprints:
+    fingerprintCleanupDisabled: false
+    storage: "file"
+  junitTestResultStorage:
+    storage: "file"
+  location:
+    adminAddress: "address not configured yet <nobody@nowhere>"
+    url: "${oc_url}"
+  mailer:
+    charset: "UTF-8"
+    useSsl: false
+    useTls: false
+  operationsCenterSharedConfiguration:
+    enabled: false
+  pollSCM:
+    pollingThreadCount: 10
+  usageStatisticsCloudBees:
+    disabledJenkinsUsageStatistics: true
+    usageStatisticsCollected: true
+tool:
+  cloudbeesPluginUsageAnalyzer:
+    enabled: true
+  mavenGlobalConfig:
+    globalSettingsProvider: "standard"
+    settingsProvider: "standard"

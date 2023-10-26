@@ -1,0 +1,28 @@
+removeStrategy:
+  rbac: SYNC
+  items: NONE
+items:
+- kind: folder
+  name: cloudbees-verification
+  description: Cloudbees Test Project
+  displayName: cloudbees-verification
+  properties:
+  - envVars: {}
+  - itemRestrictions:
+      filter: false
+  - folderCredentialsProperty:
+      folderCredentials:
+      - credentials:
+        - usernamePassword:
+            password: '${readFile:/run/secrets/github-token}'
+            description: github-token
+            id: github-token
+            usernameSecret: false
+            username: fa-spectre
+        - string:
+            id: "cloudbees-token"
+            description: "cloudbees-token"
+            scope: SYSTEM
+            secret: "${readFile:/run/secrets/cloudbees-token}"
+        domain: {}
+  items:

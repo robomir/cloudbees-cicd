@@ -1,0 +1,122 @@
+Subdomain: true
+Master:
+  Image:
+    dockerImage: cloudbees/cloudbees-core-mm:2.375.4.2
+  JavaOpts: >-
+    -Dcom.sun.management.jmxremote.port=1099
+    -Dcom.sun.management.jmxremote.authenticate=false
+    -Dcom.sun.management.jmxremote.ssl=false
+Agents:
+  Image:
+    dockerImage: cloudbees/cloudbees-core-agent:2.375.4.2
+OperationsCenter:
+  Image:
+    dockerImage: cloudbees/cloudbees-cloud-core-oc:2.375.4.2
+  Annotations:
+    ad.datadoghq.com/jenkins.check_names: '["jenkins"]'
+    ad.datadoghq.com/jenkins.init_configs: '[{"is_jmx": true, "collect_default_metrics": true}]'
+    ad.datadoghq.com/jenkins.instances: '[{"jmx_url": "service:jmx:rmi:///jndi/rmi://%%host%%:1099/jmxrmi"}]'
+  JavaOpts: >-
+    -Dcom.sun.management.jmxremote.port=1099
+    -Dcom.sun.management.jmxremote.authenticate=false
+    -Dcom.sun.management.jmxremote.ssl=false
+    -XX:InitialRAMPercentage=50.0
+    -XX:MaxRAMPercentage=50.0
+  HostName: cloudbees.example.com
+  CasC:
+    Enabled: true
+  Protocol: https
+  Resources:
+    Limits:
+      Memory: 4G
+    Requests:
+      Memory: 4G
+  Platform: eks
+  NodeSelector:
+    eks.amazonaws.com/nodegroup: "eks_nodegroup_name"
+  ExtraVolumes:
+    - name: ssh-config-dir
+      emptyDir: {}
+    - name: git-ssh-key
+      secret:
+        secretName: git-ssh-key
+    - name: gerrit-creds
+      csi:
+        driver: secrets-store.csi.k8s.io
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: "cloudbees-dev-oc"
+    - name: secrets-key
+      csi:
+        driver: secrets-store.csi.k8s.io
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: "cloudbees-dev-oc"
+    - name: secrets-properties
+      csi:
+        driver: secrets-store.csi.k8s.io
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: "cloudbees-dev-oc"
+    - name: eks-sse-credentials
+      csi:
+        driver: secrets-store.csi.k8s.io
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: "cloudbees-dev-oc"
+    - name: eks-dev-credentials
+      csi:
+        driver: secrets-store.csi.k8s.io
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: "cloudbees-dev-oc"
+    - name: github-token
+      csi:
+        driver: secrets-store.csi.k8s.io
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: "cloudbees-dev-oc"
+    - name: cloudbees-token
+      csi:
+        driver: secrets-store.csi.k8s.io
+        readOnly: true
+        volumeAttributes:
+          secretProviderClass: "cloudbees-dev-oc"
+  ExtraVolumeMounts:
+    - name: ssh-config-dir
+      mountPath: /var/jenkins_home/.ssh
+    - name: gerrit-creds
+      mountPath: /var/jenkins_home/.ssh/id_rsa
+      subPath: gerrit-creds
+      readOnly: true
+    - name: secrets-key
+      mountPath: /var/jenkins_home/secret.key
+      subPath: secret_key
+      readOnly: true
+    - name: secrets-properties
+      mountPath: /run/secrets/secrets.properties
+      subPath: secrets-properties
+      readOnly: true
+    - name: git-ssh-key
+      mountPath: /run/secrets/git-ssh-key
+      readOnly: true
+    - name: eks-sse-credentials
+      mountPath: /run/secrets/eks-sse-credentials
+      subPath: eks-sse-credentials
+      readOnly: true
+    - name: eks-dev-credentials
+      mountPath: /run/secrets/eks-dev-credentials
+      subPath: eks-dev-credentials
+      readOnly: true
+    - name: github-token
+      mountPath: /run/secrets/github-token
+      subPath: github-token
+      readOnly: true
+    - name: cloudbees-token
+      mountPath: /run/secrets/cloudbees-token
+      subPath: cloudbees-token
+      readOnly: true
+  Ingress:
+    Class: alb
+    Annotations:
+      alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-west-2:XXXXXXXX:certificate/YYYYYYYYY

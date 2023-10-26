@@ -1,0 +1,10 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: "{{ include "sidecar-injector.name" . | trunc 56 }}-init"
+  labels:
+{{ include "sidecar-injector-init.labels" . | indent 4 }}
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-delete-policy": hook-succeeded
+{{ include "sidecar-injector.init-job.spec" .}}

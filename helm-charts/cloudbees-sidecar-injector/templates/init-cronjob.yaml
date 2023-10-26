@@ -1,0 +1,10 @@
+apiVersion: {{.Values.requestCert.cron.apiVersion}}
+kind: CronJob
+metadata:
+  name: "{{ include "sidecar-injector.name" . | trunc 56 }}"
+  labels:
+{{ include "sidecar-injector-init.labels" . | indent 4 }}
+spec:
+  schedule: {{.Values.requestCert.cron.schedule}}
+  jobTemplate:
+{{ include "sidecar-injector.init-job.spec" . | indent 4}}

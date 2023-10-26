@@ -1,0 +1,33 @@
+{{- if .Values.NetworkPolicy.Enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: master
+  labels:
+{{ include "cloudbees-core.labels" . | indent 4 }}
+spec:
+{{ include "master.podSelector" . | indent 2 }}
+  ingress:
+  - from:
+{{ include "agent.podSelectors" . | indent 4 }}
+{{ include "ingress.podSelectors" . | indent 4 }}
+{{ if .Values.Hibernation.Enabled }}
+{{ include "hibernationMonitor.podSelectors" . | indent 4 }}
+{{ end }}
+    ports:
+    - port: 8080
+      protocol: TCP
+  - from:
+{{ include "agent.podSelectors" . | indent 4 }}
+{{ include "ingress.podSelectors" . | indent 4 }}
+    ports:
+    - port: 50000
+      protocol: TCP
+{{- if .Values.NetworkPolicy.JMXSelectors }}
+- from:
+{{ toYaml .Values.NetworkPolicy.JMXSelectors | indent 4 }}
+  ports:
+  - port: 4000
+    protocol: TCP
+  {{- end }}
+{{- end }}

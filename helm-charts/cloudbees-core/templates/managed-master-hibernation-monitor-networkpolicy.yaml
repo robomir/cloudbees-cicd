@@ -1,0 +1,20 @@
+{{- if .Values.Hibernation.Enabled -}}
+{{- if .Values.NetworkPolicy.Enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: managed-master-hibernation-monitor
+  labels:
+    app: managed-master-hibernation-monitor
+{{ include "cloudbees-core.labels" . | indent 4 }}
+spec:
+{{ include "hibernationMonitor.podSelector" . | indent 2 }}
+  ingress:
+  - from:
+{{ include "master.podSelectors" . | indent 4 }}
+{{ include "ingress.podSelectors" . | indent 4}}
+    ports:
+    - port: {{ include "networkpolicy.hibernationmonitor.http" . }}
+      protocol: TCP
+{{- end -}}
+{{- end -}}

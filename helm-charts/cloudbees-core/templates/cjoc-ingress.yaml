@@ -1,0 +1,35 @@
+{{- if and .Values.OperationsCenter.Enabled (include "cloudbees-core.needs-ingress" .) -}}
+{{- include "ingress.check" . -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cjoc
+  labels:
+{{ include "cloudbees-core.labels" . | indent 4 }}
+  annotations:
+{{ include "cjoc.ingress.annotations" . | indent 4 }}
+spec:
+{{- if .Values.OperationsCenter.Ingress.Class }}
+  ingressClassName: {{ .Values.OperationsCenter.Ingress.Class }}
+{{- end }}
+  rules:
+  - http:
+      paths:
+{{- include "ingress.redirect-rules" . | indent 6 }}
+      - path: "{{ include "oc.ingresspath" .  }}"
+        backend:
+          service:
+            name: cjoc
+            port:
+              number: {{ .Values.OperationsCenter.ServicePort }}
+        pathType: Prefix
+{{- if (include "oc.hostnamewithoutport" . ) }}
+    host: {{ include "oc.hostnamewithoutport" . | quote }}
+{{- end }}
+{{- if .Values.OperationsCenter.Ingress.tls.Enable }}
+  tls:
+    - hosts:
+        - {{ include "oc.hostnamewithoutport" . | quote }}
+      secretName: {{ .Values.OperationsCenter.Ingress.tls.SecretName }}
+{{- end -}}
+{{- end -}}
